@@ -47,9 +47,7 @@ python app/worker.py
 
 ### Railway Deployment
 
-Deploy to Railway for a live demo in minutes! See [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md) for detailed instructions.
-
-**Quick Steps:**
+Deploy to Railway for a live demo in minutes! See [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md) for detailed instructions.**Quick Steps:**
 1. Push your code to GitHub
 2. Create a new Railway project
 3. Add Redis service
@@ -64,4 +62,3 @@ Your API will be live at `https://your-app.railway.app`
 - `POST /api/tasks` - Submit a new task
 - `GET /api/tasks/{task_id}` - Get task status
 - `GET /api/queues/stats` - Get queue statistics
-

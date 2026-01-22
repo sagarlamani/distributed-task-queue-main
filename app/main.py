@@ -88,7 +88,15 @@ async def root():
 
 @app.get("/health")
 async def health():
-    redis_status = "connected" if redis_client and redis_client.ping() else "disconnected"
+    """Health check endpoint"""
+    redis_status = "disconnected"
+    if redis_client:
+        try:
+            redis_client.ping()
+            redis_status = "connected"
+        except Exception as e:
+            redis_status = f"error: {str(e)}"
+    
     return {
         "status": "healthy",
         "redis": redis_status,
