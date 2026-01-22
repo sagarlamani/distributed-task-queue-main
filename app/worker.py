@@ -6,6 +6,7 @@ import redis
 import json
 import time
 import logging
+import os
 from multiprocessing import Process
 from typing import Dict, Callable
 import signal
@@ -15,22 +16,34 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class Worker:
-    def __init__(self, redis_host='localhost', redis_port=6379, queue_name='queue:medium'):
+    def __init__(self, redis_host=None, redis_port=None, queue_name='queue:medium'):
         self.running = False
         self.queue_name = queue_name
         
+        # Get Redis connection from environment or parameters
+        redis_url = os.getenv('REDIS_URL')
+        redis_host = redis_host or os.getenv('REDIS_HOST', 'localhost')
+        redis_port = redis_port or int(os.getenv('REDIS_PORT', 6379))
+        redis_password = os.getenv('REDIS_PASSWORD')
+        
         try:
-            self.redis_client = redis.Redis(
-                host=redis_host,
-                port=redis_port,
-                db=0,
-                decode_responses=True
-            )
+            if redis_url:
+                # Railway format: redis://default:password@host:port
+                self.redis_client = redis.from_url(redis_url, decode_responses=True)
+            else:
+                # Local development
+                self.redis_client = redis.Redis(
+                    host=redis_host,
+                    port=redis_port,
+                    password=redis_password,
+                    db=0,
+                    decode_responses=True
+                )
             self.redis_client.ping()
             logger.info(f"Worker connected to Redis, listening on {queue_name}")
-        except:
+        except Exception as e:
             self.redis_client = None
-            logger.warning("Redis not available. Worker cannot start.")
+            logger.warning(f"Redis not available: {e}. Worker cannot start.")
     
     def register_task_handler(self, task_type: str, handler: Callable):
         """Register a task handler"""

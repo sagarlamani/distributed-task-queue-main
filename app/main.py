@@ -10,6 +10,7 @@ from datetime import datetime
 import redis
 import json
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,14 +30,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Redis connection
-try:
-    redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
-    redis_client.ping()
-    logger.info("Connected to Redis")
-except:
-    redis_client = None
-    logger.warning("Redis not available. Using in-memory queue.")
+# Redis connection - supports Railway and local development
+def get_redis_client():
+    """Get Redis client from environment variables or defaults"""
+    # Railway provides REDIS_URL, local dev uses REDIS_HOST/REDIS_PORT
+    redis_url = os.getenv('REDIS_URL')
+    redis_host = os.getenv('REDIS_HOST', 'localhost')
+    redis_port = int(os.getenv('REDIS_PORT', 6379))
+    redis_password = os.getenv('REDIS_PASSWORD')
+    
+    try:
+        if redis_url:
+            # Railway format: redis://default:password@host:port
+            client = redis.from_url(redis_url, decode_responses=True)
+        else:
+            # Local development
+            client = redis.Redis(
+                host=redis_host,
+                port=redis_port,
+                password=redis_password,
+                db=0,
+                decode_responses=True
+            )
+        client.ping()
+        logger.info("Connected to Redis")
+        return client
+    except Exception as e:
+        logger.warning(f"Redis not available: {e}. Using in-memory queue.")
+        return None
+
+redis_client = get_redis_client()
 
 # In-memory queue (fallback)
 in_memory_queue: Dict[str, List] = {
@@ -147,5 +170,6 @@ async def get_queue_stats():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv('PORT', 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
